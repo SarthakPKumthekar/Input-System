@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Unity.Collections;
@@ -1961,6 +1962,70 @@ namespace UnityEngine.InputSystem
             composites.AddTypeRegistration("ButtonWithTwoModifiers", typeof(ButtonWithTwoModifiers));
             composites.AddTypeRegistration("OneModifier", typeof(OneModifierComposite));
             composites.AddTypeRegistration("TwoModifiers", typeof(TwoModifiersComposite));
+
+            // Register custom types by reflection
+            RegisterCustomTypes();
+        }
+
+        void RegisterCustomTypes(Type[] types)
+        {
+            foreach (Type type in types)
+            {
+                if (!type.IsClass
+                    || type.IsAbstract
+                    || type.IsGenericType)
+                    continue;
+                //Debug.Log("Instantiating type: " + type.FullName);
+                if (typeof(InputProcessor).IsAssignableFrom(type))
+                {
+                    //Debug.Log("InputProcessor register type: " + type.FullName);
+                    //InputSystem.RegisterProcessor(type);
+                }
+                else if (typeof(IInputInteraction).IsAssignableFrom(type))
+                {
+                    //Debug.Log("IInputInteraction register type: " + type.FullName);
+                    InputSystem.RegisterInteraction(type);
+                }
+                else if (typeof(InputBindingComposite).IsAssignableFrom(type))
+                {
+                    //Debug.Log("InputBindingComposite register type: " + type.FullName);
+                    InputSystem.RegisterBindingComposite(type, null);
+                }
+            }
+        }
+
+        void RegisterCustomTypes()
+        {
+            var inputSystemAssembly = typeof(InputProcessor).Assembly;
+            var inputSystemName = inputSystemAssembly.GetName().Name;
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var assembly in assemblies)
+            {
+                // Debug.Log("Assembly: " + assembly.FullName);
+                try
+                {
+                    // exclude InputSystem assembly which should be loaded first
+                    if (assembly == inputSystemAssembly) continue;
+
+                    // Only register types from assemblies that reference InputSystem
+                    foreach (var referencedAssembly in assembly.GetReferencedAssemblies())
+                    {
+                        if (referencedAssembly.Name == inputSystemName)
+                        {
+                            RegisterCustomTypes(assembly.GetTypes());
+                            break;
+                        }
+                    }
+                }
+                catch (ReflectionTypeLoadException)
+                {
+                    //Debug.Log("Failed getting types in assembly: " + assembly.FullName);
+                }
+                catch (System.Exception)
+                {
+                    //Debug.Log("Failed getting types in assembly generic: " + assembly.FullName);
+                }
+            }
         }
 
         internal void InstallRuntime(IInputRuntime runtime)
