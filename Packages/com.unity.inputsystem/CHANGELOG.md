@@ -10,6 +10,9 @@ however, it has to be formatted properly to pass verification tests.
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Fixed
+- Fixed an issue when multiple interactions drive an action and perform during the cancelation of the current active interaction [ISXB-310](https://issuetracker.unity3d.com/product/unity/issues/guid/ISXB-310).
+
 ## [1.9.0] - 2024-07-15
 
 ### Changed
